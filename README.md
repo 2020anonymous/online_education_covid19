@@ -1,6 +1,6 @@
 # online_education_covid19
 
-This repository provides supplementary information for the paper "Evidence from Internet search data shows increasing interest in online education during the COVID-19 pandemic, with females showing a greater increase than males".
+This repository provides supplementary information for the paper "Evidence from Internet search data shows increasing interest in online education during the COVID-19 pandemic, with females showing a greater increase than males". We keep the materials anonymous for double-blind review.
 
 1. code: see the R script file models.R .
 
