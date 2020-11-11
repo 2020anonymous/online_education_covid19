@@ -1,6 +1,6 @@
 
 
-# This script includes the code to fit the models in paper "Evidence from Internet search data shows increasing interest in online education during the COVID-19 pandemic, with females showing a greater increase than males". The script runs in R (version 3.4.1).
+# This script includes the code to fit the models in paper "Internet search data shows increasing interest in online education during the COVID-19 pandemic, with females showing greater increases". The script runs in R (version 3.4.1).
 
 # read the synthetic dataset
 sample_data<-read.table(paste(data_directory, "synthetic_sample_data", ".txt", sep=""), header=TRUE, stringsAsFactors=FALSE, as.is=TRUE)
