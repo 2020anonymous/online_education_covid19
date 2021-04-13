@@ -6,7 +6,13 @@
 sample_data<-read.table(paste(data_directory, "synthetic_sample_data", ".txt", sep=""), header=TRUE, stringsAsFactors=FALSE, as.is=TRUE)
 ## in the above line, please replace data_directory with the directory where you store the synthetic sample data.
 
-## the synthetic dataset sample_data has 6 columns: week_index (which range from 1 to 40 to indicate the 40 weeks' serach data), age_group_index (which takes value 0~4, representing 24 yr or younger, 25-34 yr, 35-49 yr, 50-64 yr and 4 represents 65 yr or older respectively), gender_index (which takes value 0 and 1, representing males and females respectively), phase_indicator (which takes value 0, 1 and 2, representing pre-pandemic phase, lockdown phase, and 'new normal' phase respectively), search_intensity and search_weight (calculated as the inverse of the SE of the corresponding search_intensity).
+## the synthetic dataset sample_data has 9 columns: 
+# week_index (which range from 1 to 40 to indicate the 40 weeks' serach data), age_group_index (which takes value 0~4, representing 24 yr or younger, 25-34 yr, 35-49 yr, 50-64 yr and 4 represents 65 yr or older respectively), 
+# gender_index (which takes value 0 and 1, representing males and females respectively), 
+# phase_indicator (which takes value 0, 1 and 2, representing pre-pandemic phase, lockdown phase, and 'new normal' phase respectively), 
+# search_intensity_onlineEdu and search_weight_onlineEdu (calculated as the inverse of the SE of the corresponding search_intensity_onlineEdu),
+# search_intensity_unemployment,
+# covid_case and covid_death (the number of covid cases and deaths per 100,000 people in the US).
 
 
 # set the baseline
@@ -24,19 +30,31 @@ sample_data[,'phase_indicator']<-relevel(sample_data[,'phase_indicator'], ref = 
 
 
 # model 1: overall changes of search intensity during the progress of the pandemic
-model_fit<-lm(as.formula('search_intensity ~  as.factor(age_group_index) +  as.factor(gender_index) +  as.factor(phase_indicator)   '), data=data.frame(sample_data), weight = search_weight)
+model_fit<-lm(as.formula('search_intensity_onlineEdu ~  as.factor(age_group_index) +  as.factor(gender_index) +  as.factor(phase_indicator)   '), data=data.frame(sample_data), weight = search_weight_onlineEdu)
 # obtain coefficients of phase_indicator for lockdown phase and 'new normal' phase
 summary(model_fit)$coefficients[c('as.factor(phase_indicator)1', 'as.factor(phase_indicator)2') ,]
 
 
 # model 2: differential effect among females and males
-model_fit<-lm(as.formula('search_intensity ~  as.factor(age_group_index) +  as.factor(gender_index) +  as.factor(phase_indicator)  + as.factor(phase_indicator):as.factor(gender_index)  '), data=data.frame(sample_data), weight = search_weight)
+model_fit<-lm(as.formula('search_intensity_onlineEdu ~  as.factor(age_group_index) +  as.factor(gender_index) +  as.factor(phase_indicator)  + as.factor(phase_indicator):as.factor(gender_index)  '), data=data.frame(sample_data), weight = search_weight_onlineEdu)
 # obtain differential effect among females and males, during lockdown phase and 'new normal' phase respectively
 summary(model_fit)$coefficients[c('as.factor(gender_index)1:as.factor(phase_indicator)1', 'as.factor(gender_index)1:as.factor(phase_indicator)2') ,]
 
 
-# model 3: differential effect among females and males, within each age group
-model_fit<-lm(as.formula('search_intensity ~  as.factor(age_group_index) +  as.factor(gender_index) +  as.factor(phase_indicator)  + as.factor(phase_indicator):as.factor(age_group_index)  +as.factor(gender_index):as.factor(age_group_index) + as.factor(phase_indicator):as.factor(gender_index):as.factor(age_group_index)  '), data=data.frame(sample_data), weight = search_weight)
+
+# model 3: overall changes of search intensity during the progress of the pandemic, with the number of covid-19 cases and deaths
+model_fit<-lm(as.formula('search_intensity_onlineEdu ~  as.factor(age_group_index) +  as.factor(gender_index) +  covid_case  +  covid_death  '), data=data.frame(sample_data), weight = search_weight_onlineEdu)
+# obtain coefficients of covid_case and covid_death
+summary(model_fit)$coefficients[c('covid_case', 'covid_death') ,]
+
+
+# model 4: differential effect among females and males, with the number of covid-19 cases and deaths
+model_fit<-lm(as.formula('search_intensity_onlineEdu ~  as.factor(age_group_index) +  as.factor(gender_index) +  covid_case  +  covid_death +  covid_case:as.factor(gender_index)  +  covid_death:as.factor(gender_index) '), data=data.frame(sample_data), weight = search_weight_onlineEdu)
+# obtain differential effect among females and males, with respect to covid cases and deaths
+summary(model_fit)$coefficients[c('as.factor(gender_index)1:covid_case', 'as.factor(gender_index)1:covid_death') ,]
+
+# model 5: differential effect among females and males, within each age group
+model_fit<-lm(as.formula('search_intensity_onlineEdu ~  as.factor(age_group_index) +  as.factor(gender_index) +  as.factor(phase_indicator)  + as.factor(phase_indicator):as.factor(age_group_index)  +as.factor(gender_index):as.factor(age_group_index) + as.factor(phase_indicator):as.factor(gender_index):as.factor(age_group_index)  '), data=data.frame(sample_data), weight = search_weight_onlineEdu)
 
 # obtain differential effect among females and males, during lockdown phase and 'new normal' phase respectively, within each age group
 # age group 0 (24 yr or younger)
@@ -55,14 +73,15 @@ summary(model_fit)$coefficients[c('as.factor(age_group_index)3:as.factor(gender_
 summary(model_fit)$coefficients[c('as.factor(age_group_index)4:as.factor(gender_index)1:as.factor(phase_indicator)1', 'as.factor(age_group_index)4:as.factor(gender_index)1:as.factor(phase_indicator)2') ,]
 
 
-# robustness check for the model 2: use week fixed effect instead of the effect of phase indicators
-model_fit<-lm(as.formula('search_intensity ~  as.factor(age_group_index) +  as.factor(gender_index) +  as.factor(week_index)   + as.factor(phase_indicator)*as.factor(gender_index)  '), data=data.frame(sample_data), weight = search_weight)
-# obtain differential effect among females and males, during lockdown phase and 'new normal' phase respectively
-summary(model_fit)$coefficients[c('as.factor(gender_index)1:as.factor(phase_indicator)1', 'as.factor(gender_index)1:as.factor(phase_indicator)2') ,]
+
+# model 6: relationship between concern over unemployment and searches of online education
+model_fit<-lm(as.formula('search_intensity_onlineEdu ~ search_intensity_unemployment +  as.factor(age_group_index) +  as.factor(gender_index) +  covid_case  +  covid_death  '), data=data.frame(sample_data), weight = search_weight_onlineEdu)
+# obtain coefficients of search_intensity_unemployment, which captures the relationship between concern over unemployment and searches of online education
+summary(model_fit)$coefficients[c('search_intensity_unemployment') ,]
 
 
-# DID model assumption check: replace the interaction of phrase indicators and female indicator in model (2) with the interaction of week indicators and female indicator
-model_fit<-lm(as.formula('search_intensity ~  as.factor(age_group_index) +  as.factor(gender_index) +  as.factor(week_index)  + as.factor(week_index):as.factor(gender_index)  '), data=data.frame(sample_data), weight = search_weight)
+# model 7: DID model assumption check: replace the interaction of phrase indicators and female indicator in model (2) with the interaction of week indicators and female indicator
+model_fit<-lm(as.formula('search_intensity_onlineEdu ~  as.factor(age_group_index) +  as.factor(gender_index) +  as.factor(week_index)  + as.factor(week_index):as.factor(gender_index)  '), data=data.frame(sample_data), weight = search_weight_onlineEdu)
 # obtain the coefficients of the interaction of week indicators and female indicator
 summary(model_fit)$coefficients[paste('as.factor(gender_index)1:as.factor(week_index)', c(1:20, 22:40), sep=""),]
 
